@@ -29,10 +29,13 @@ import Observation
         let queryPredicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
         let samplePredicate = HKSamplePredicate.quantitySample(type: HKQuantityType(.stepCount), predicate: queryPredicate)
         let stepsQuery = HKStatisticsCollectionQueryDescriptor(predicate: samplePredicate, options: .cumulativeSum, anchorDate: endDate, intervalComponents: .init(day:1))
-        
-        let stepCounts = try! await stepsQuery.result(for: store)
-        stepData = stepCounts.statistics().map{
-            .init(date: $0.startDate, value: $0.sumQuantity()?.doubleValue(for: .count()) ?? 0)
+        do{
+            let stepCounts = try! await stepsQuery.result(for: store)
+            stepData = stepCounts.statistics().map{
+                .init(date: $0.startDate, value: $0.sumQuantity()?.doubleValue(for: .count()) ?? 0)
+            }
+        }catch {
+            
         }
     }
     
@@ -45,11 +48,15 @@ import Observation
         let queryPredicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate)
         let samplePredicate = HKSamplePredicate.quantitySample(type: HKQuantityType(.bodyMass), predicate: queryPredicate)
         let weightQuery = HKStatisticsCollectionQueryDescriptor(predicate: samplePredicate, options: .mostRecent, anchorDate: endDate, intervalComponents: .init(day:1))
-        
-        let weights = try! await weightQuery.result(for: store)
-        weightData = weights.statistics().map{
-            .init(date: $0.startDate, value: $0.mostRecentQuantity()?.doubleValue(for: .kilocalorie()) ?? 0)
+        do{
+            let weights = try! await weightQuery.result(for: store)
+            weightData = weights.statistics().map{
+                .init(date: $0.startDate, value: $0.mostRecentQuantity()?.doubleValue(for: .kilocalorie()) ?? 0)
+            }
+        } catch{
+            
         }
+   
     }
     
     func AddSimulatorData() async{
