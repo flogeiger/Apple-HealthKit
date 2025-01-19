@@ -13,6 +13,10 @@ struct WeightLineChart :View {
     var selectedState:  HealthMetricContext
     var chartData: [HealthMetric]
     
+    var minValue : Double {
+        chartData.map { $0.value }.min() ?? 0
+    }
+    
     var body: some View {
         VStack {
             NavigationLink(value: selectedState) {
@@ -33,16 +37,34 @@ struct WeightLineChart :View {
             .foregroundStyle(.secondary)
             
             Chart{
-                ForEach(chartData) { weights in
+                RuleMark(y: .value("Goal", 155)).foregroundStyle(.mint).lineStyle(.init(lineWidth: 1, dash: [5]))
+                
+                ForEach(chartData) { weight in
+                    AreaMark(x: .value("Day", weight.date, unit: .day),
+                             yStart: .value("Value", weight.value),
+                             yEnd: .value("Min Value", minValue)
+                    ).foregroundStyle(Gradient(colors: [.indigo.opacity(0.5),.clear]))
+                        .interpolationMethod(.catmullRom)
                     
-                    AreaMark(
-                        x: .value("Day",weights.date,unit: .day),y: .value("Value",weights.value)
-                    ).foregroundStyle(Gradient(colors: [.blue.opacity(0.5),.clear]))
-                    
-                    LineMark(x: .value("Day",weights.date,unit: .day),y: .value("Value",weights.value))
+                    LineMark(x: .value("Day",weight.date,unit: .day),y: .value("Value",weight.value))
+                        .foregroundStyle(.indigo)
+                        .interpolationMethod(.catmullRom)
+                        .symbol(.circle)
                 }
             }.frame(height: 150)
-            
+                .chartYScale(domain: .automatic(includesZero: false ))
+                .chartXAxis{
+                    AxisMarks{ value in
+                        AxisValueLabel(format: .dateTime.month(.defaultDigits).day())
+                    }
+                }
+                .chartYAxis{
+                    AxisMarks{ value in
+                        AxisGridLine().foregroundStyle(Color.secondary.opacity(0.3))
+                        
+                        AxisValueLabel()
+                    }
+                }
         }
         .padding()
         .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
