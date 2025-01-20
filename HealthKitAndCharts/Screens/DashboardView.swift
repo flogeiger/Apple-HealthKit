@@ -25,15 +25,21 @@ struct DashboardView: View {
                 VStack(spacing: 20) {
                     statPicker
                     
-                    StepBarChart(selectedState: selectedStat, chartData: hkManager.stepData)
-                    
-                    StepPieChart(chartData: ChartMath.averageWeekdayCount(for: hkManager.stepData))
+                    switch selectedStat {
+                    case .steps:
+                        StepBarChart(selectedState: selectedStat, chartData: hkManager.stepData)
+                        
+                        StepPieChart(chartData: ChartMath.averageWeekdayCount(for: hkManager.stepData))
+                    case .weight:
+                        WeightLineChart( selectedState: selectedStat, chartData: hkManager.weightData)
+                    }
                 }
                 .padding()
             }
             .task {
                // await hkManager.AddSimulatorData()
                 await hkManager.fetchStepCount()
+                await hkManager.fetchWeights()
                 ChartMath.averageWeekdayCount(for: hkManager.stepData)
                 isShowPermissionPrimingSheet = !hasSeenPermissionPriming
             }
