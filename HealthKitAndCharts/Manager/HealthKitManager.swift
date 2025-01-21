@@ -50,9 +50,12 @@ import Observation
         let samplePredicate = HKSamplePredicate.quantitySample(type: HKQuantityType(.bodyMass), predicate: queryPredicate)
         let weightQuery = HKStatisticsCollectionQueryDescriptor(predicate: samplePredicate, options: .mostRecent, anchorDate: endDate, intervalComponents: .init(day:1))
         do{
-            let weights = try! await weightQuery.result(for: store)
+            /* let weights = try! await weightQuery.result(for: store)
             weightData = weights.statistics().map{
-                .init(date: $0.startDate, value: $0.mostRecentQuantity()?.doubleValue(for: .kilocalorie()) ?? 0)
+                .init(date: $0.startDate, value: $0.mostRecentQuantity()?.doubleValue(for: .kilocalorie()) ?? 0)*/
+            let weights = try! await weightQuery.result(for: store)
+            weightDiffData = weights.statistics().map{
+                .init(date: $0.startDate, value: $0.mostRecentQuantity()?.doubleValue(for: .gram()) ?? 0)
             }
         } catch{
             
@@ -69,9 +72,12 @@ import Observation
         let samplePredicate = HKSamplePredicate.quantitySample(type: HKQuantityType(.bodyMass), predicate: queryPredicate)
         let weightQuery = HKStatisticsCollectionQueryDescriptor(predicate: samplePredicate, options: .mostRecent, anchorDate: endDate, intervalComponents: .init(day:1))
         do{
+           /*/ let weights = try! await weightQuery.result(for: store)
+            weightDiffData = weights.statistics().map{
+                .init(date: $0.startDate, value: $0.mostRecentQuantity()?.doubleValue(for: .kilocalorie()) ?? 0)*/
             let weights = try! await weightQuery.result(for: store)
             weightDiffData = weights.statistics().map{
-                .init(date: $0.startDate, value: $0.mostRecentQuantity()?.doubleValue(for: .kilocalorie()) ?? 0)
+                .init(date: $0.startDate, value: $0.mostRecentQuantity()?.doubleValue(for: .gram()) ?? 0)
             }
         } catch{
             
@@ -79,24 +85,16 @@ import Observation
    
     }
     
-    func AddSimulatorData() async{
-        var mockSamples : [HKQuantitySample] = []
-        
-        for i in 0..<28{
-            let stepQuantity = HKQuantity(unit: .count(), doubleValue: .random(in: 4_000...20_000))
-            let weightQuantity = HKQuantity(unit: .pound(), doubleValue: .random(in: (160 + Double(i/3)...165 + Double(i/3))))
-            
-            let startDate = Calendar.current.date(byAdding: .day, value: -i, to: .now)!
-            let endDate = Calendar.current.date(byAdding: .second, value: 1, to: startDate)!
-            
-            let stepSample = HKQuantitySample(type: HKQuantityType(.stepCount), quantity: stepQuantity, start: startDate, end: endDate)
-            let weightSample = HKQuantitySample(type: HKQuantityType(.bodyMass), quantity: weightQuantity, start: startDate, end: endDate)
-            
-            mockSamples.append(stepSample)
-            mockSamples.append(weightSample)
-        }
-        
-        try! await store.save(mockSamples)
-        print("Dummy Data sent up")
+    func addStepData(for date: Date, value: Double) async{
+        let stepQuantity = HKQuantity(unit: .count(), doubleValue: value)
+        let stepSample = HKQuantitySample(type: HKQuantityType(.stepCount), quantity: stepQuantity, start: date,end: date)
+        try! await store.save(stepSample)
     }
+    
+    func addWeightData(for date: Date, value: Double) async{
+        let weightQuantity = HKQuantity(unit: .pound(), doubleValue: value)
+        let weightSample = HKQuantitySample(type: HKQuantityType(.bodyMass), quantity: weightQuantity, start: date,end: date)
+        try! await store.save(weightSample)
+    }
+    
 }
