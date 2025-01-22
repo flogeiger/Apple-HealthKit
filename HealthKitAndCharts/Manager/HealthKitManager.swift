@@ -9,6 +9,13 @@ import Foundation
 import HealthKit
 import Observation
 
+enum STError: Error {
+    case authNotDetermined
+    case noData
+    case unableToCompleteRequest
+    case sharingDenied(quantityType: String)
+}
+
 @Observable class HealthKitManager{
     let store = HKHealthStore()
     
@@ -21,7 +28,12 @@ import Observation
     var weightData: [HealthMetric] = []
     var weightDiffData: [HealthMetric] = []
     
-    func fetchStepCount() async{
+    func fetchStepCount() async throws{
+        guard store.authorizationStatus(for: HKQuantityType(.stepCount)) != .notDetermined else {
+            throw STError.authNotDetermined
+        }
+        
+        
         let calender = Calendar.current
         let today = calender.startOfDay(for: .now)
         let endDate = calender.date(byAdding: .day, value: 1, to: today)!
@@ -35,12 +47,18 @@ import Observation
             stepData = stepCounts.statistics().map{
                 .init(date: $0.startDate, value: $0.sumQuantity()?.doubleValue(for: .count()) ?? 0)
             }
-        }catch {
-            
+        }catch HKError.errorNoData{
+            throw STError.noData
+        } catch{
+            throw STError.unableToCompleteRequest
         }
     }
     
-    func fetchWeights() async{
+    func fetchWeights() async throws{
+        guard store.authorizationStatus(for: HKQuantityType(.bodyMass)) != .notDetermined else {
+            throw STError.authNotDetermined
+        }
+        
         let calender = Calendar.current
         let today = calender.startOfDay(for: .now)
         let endDate = calender.date(byAdding: .day, value: 1, to: today)!
@@ -50,19 +68,22 @@ import Observation
         let samplePredicate = HKSamplePredicate.quantitySample(type: HKQuantityType(.bodyMass), predicate: queryPredicate)
         let weightQuery = HKStatisticsCollectionQueryDescriptor(predicate: samplePredicate, options: .mostRecent, anchorDate: endDate, intervalComponents: .init(day:1))
         do{
-            /* let weights = try! await weightQuery.result(for: store)
-            weightData = weights.statistics().map{
-                .init(date: $0.startDate, value: $0.mostRecentQuantity()?.doubleValue(for: .kilocalorie()) ?? 0)*/
             let weights = try! await weightQuery.result(for: store)
-            weightDiffData = weights.statistics().map{
-                .init(date: $0.startDate, value: $0.mostRecentQuantity()?.doubleValue(for: .gram()) ?? 0)
+            weightData = weights.statistics().map{
+                .init(date: $0.startDate, value: $0.mostRecentQuantity()?.doubleValue(for: .pound()) ?? 0)
             }
+        } catch HKError.errorNoData{
+            throw STError.noData
         } catch{
-            
+            throw STError.unableToCompleteRequest
         }
     }
     
-    func fetchWeightsForDifferentials() async{
+    func fetchWeightsForDifferentials() async throws{
+        guard store.authorizationStatus(for: HKQuantityType(.bodyMass)) != .notDetermined else {
+            throw STError.authNotDetermined
+        }
+
         let calender = Calendar.current
         let today = calender.startOfDay(for: .now)
         let endDate = calender.date(byAdding: .day, value: 1, to: today)!
@@ -72,29 +93,65 @@ import Observation
         let samplePredicate = HKSamplePredicate.quantitySample(type: HKQuantityType(.bodyMass), predicate: queryPredicate)
         let weightQuery = HKStatisticsCollectionQueryDescriptor(predicate: samplePredicate, options: .mostRecent, anchorDate: endDate, intervalComponents: .init(day:1))
         do{
-           /*/ let weights = try! await weightQuery.result(for: store)
-            weightDiffData = weights.statistics().map{
-                .init(date: $0.startDate, value: $0.mostRecentQuantity()?.doubleValue(for: .kilocalorie()) ?? 0)*/
             let weights = try! await weightQuery.result(for: store)
             weightDiffData = weights.statistics().map{
-                .init(date: $0.startDate, value: $0.mostRecentQuantity()?.doubleValue(for: .gram()) ?? 0)
+                .init(date: $0.startDate, value: $0.mostRecentQuantity()?.doubleValue(for: .pound()) ?? 0)
             }
+        } catch HKError.errorNoData{
+            throw STError.noData
         } catch{
-            
+            throw STError.unableToCompleteRequest
         }
    
     }
     
-    func addStepData(for date: Date, value: Double) async{
+    func addStepData(for date: Date, value: Double) async throws{
+        
+        let status = store.authorizationStatus(for: HKQuantityType(.stepCount))
+        
+        switch status {
+            case .notDetermined:
+                throw STError.authNotDetermined
+            case .sharingDenied:
+                throw STError.sharingDenied(quantityType: "Step count")
+            case .sharingAuthorized:
+                break
+            @unknown default:
+                break
+        }
+        
         let stepQuantity = HKQuantity(unit: .count(), doubleValue: value)
         let stepSample = HKQuantitySample(type: HKQuantityType(.stepCount), quantity: stepQuantity, start: date,end: date)
-        try! await store.save(stepSample)
+        do {
+            try await store.save(stepSample)
+        } catch {
+            throw STError.unableToCompleteRequest
+        }
     }
     
-    func addWeightData(for date: Date, value: Double) async{
+    func addWeightData(for date: Date, value: Double) async throws{
+        
+        let status = store.authorizationStatus(for: HKQuantityType(.bodyMass))
+        
+        switch status {
+            case .notDetermined:
+                throw STError.authNotDetermined
+            case .sharingDenied:
+                throw STError.sharingDenied(quantityType: "weight count")
+            case .sharingAuthorized:
+                break
+            @unknown default:
+                break
+        }
+        
         let weightQuantity = HKQuantity(unit: .pound(), doubleValue: value)
         let weightSample = HKQuantitySample(type: HKQuantityType(.bodyMass), quantity: weightQuantity, start: date,end: date)
-        try! await store.save(weightSample)
+        
+        do {
+            try await store.save(weightSample)
+        } catch {
+            throw STError.unableToCompleteRequest
+        }
     }
     
 }
