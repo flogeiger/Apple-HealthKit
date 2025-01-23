@@ -15,7 +15,6 @@ enum HealthMetricContext: CaseIterable, Identifiable {
 
 struct DashboardView: View {
     @Environment(HealthKitManager.self) private var hkManager
-    @AppStorage("hasSeenPermissionPriming") private var hasSeenPermissionPriming = false
     @State private var isShowPermissionPrimingSheet = false
     @State private var selectedStat: HealthMetricContext = .steps
     
@@ -39,20 +38,29 @@ struct DashboardView: View {
                 .padding()
             }
             .task {
-               // await hkManager.AddSimulatorData()
-                await hkManager.fetchStepCount()
-                await hkManager.fetchWeights()
-                await hkManager.fetchWeightsForDifferentials()
-                
-                isShowPermissionPrimingSheet = !hasSeenPermissionPriming
+                do{
+                    try await hkManager.fetchStepCount()
+                    try await hkManager.fetchWeights()
+                    try await hkManager.fetchWeightsForDifferentials()
+                } catch STError.authNotDetermined{
+                    isShowPermissionPrimingSheet = true
+                } catch STError.noData{
+                    print("No data available")
+                } catch STError.sharingDenied(let quantityType){
+                    print("TesttesttestError")
+                } catch {
+                    print("Unable to fetch!")
+                }
             }
             .navigationTitle("Dashboard")
             .navigationDestination(for: HealthMetricContext.self) { metric in
                 HealthDataListView(metric: metric)
             }
-            .sheet(isPresented: $isShowPermissionPrimingSheet) {
-                HealthKitPermissionPrimingView(hasSeen: $isShowPermissionPrimingSheet)
-            }
+            .sheet(isPresented: $isShowPermissionPrimingSheet,onDismiss: {
+                
+            }, content: {
+                HealthKitPermissionPrimingView()
+            })
         }
         .tint(selectedStat == .steps ? .pink : .indigo)
     }
