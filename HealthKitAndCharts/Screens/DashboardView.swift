@@ -15,6 +15,8 @@ enum HealthMetricContext: CaseIterable, Identifiable {
 
 struct DashboardView: View {
     @Environment(HealthKitManager.self) private var hkManager
+    @State private var isShowingAlert = false
+    @State private var fetchError: STError = .noData
     @State private var isShowPermissionPrimingSheet = false
     @State private var selectedStat: HealthMetricContext = .steps
     
@@ -45,11 +47,11 @@ struct DashboardView: View {
                 } catch STError.authNotDetermined{
                     isShowPermissionPrimingSheet = true
                 } catch STError.noData{
-                    print("No data available")
-                } catch STError.sharingDenied(let quantityType){
-                    print("TesttesttestError")
+                    fetchError = .noData
+                    isShowingAlert = true
                 } catch {
-                    print("Unable to fetch!")
+                    fetchError = .unableToCompleteRequest
+                    isShowingAlert = true
                 }
             }
             .navigationTitle("Dashboard")
@@ -61,6 +63,12 @@ struct DashboardView: View {
             }, content: {
                 HealthKitPermissionPrimingView()
             })
+            .alert( isPresented: $isShowingAlert,error: fetchError) {fetchError in
+                
+            } message: { fetchError in
+                Text(fetchError.failureReason)
+            }
+
         }
         .tint(selectedStat == .steps ? .pink : .indigo)
     }
