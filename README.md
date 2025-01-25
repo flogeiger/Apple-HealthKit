@@ -52,7 +52,7 @@ Here's the code:
 <br>
 </br>
 
-![readme-weight-diff](https://github.com/SAllen0400/step-readme/assets/10645516/afdef8cb-9e40-4fac-9548-87dbb708a35c)
+![readme-weight-diff](https://github.com/flogeiger/Apple-HealthKit/blob/main/readme-weight-diff.png)
 
 
 # Completeness
