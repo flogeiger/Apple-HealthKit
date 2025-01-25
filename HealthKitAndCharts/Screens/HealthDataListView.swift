@@ -80,10 +80,18 @@ struct HealthDataListView: View {
                             return
                         }
                         Task{
-                            if metric == .steps{
                                 do{
-                                    try await hkManager.addStepData(for: addDataDate, value: value)
-                                    try await hkManager.fetchStepCount()
+                                    if metric == .steps{
+                                        try await hkManager.addStepData(for: addDataDate, value: value)
+                                        hkManager.stepData = try await hkManager.fetchStepCount()
+                                    }else{
+                                        try await hkManager.addWeightData(for: addDataDate, value:value)
+                                        async let weightsForLineChart = hkManager.fetchWeights(daysBack: 28)
+                                        async let weightsForDifferentials = hkManager.fetchWeights(daysBack: 29)
+                                        
+                                        hkManager.weightData = try await weightsForLineChart
+                                        hkManager.weightDiffData = try await weightsForDifferentials
+                                    }
                                     isShowingAddData = false
                                 }  catch STError.sharingDenied(let quantity){
                                     writeError = .sharingDenied(quantityType: quantity)
@@ -91,20 +99,6 @@ struct HealthDataListView: View {
                                 } catch {
                                     writeError = .unableToCompleteRequest
                                     isShowingAlert = true
-                                }
-                            }else{
-                                do{
-                                    try await hkManager.addWeightData(for: addDataDate, value:value)
-                                    try await hkManager.fetchWeights()
-                                    try await hkManager.fetchWeightsForDifferentials()
-                                    isShowingAddData = false
-                                }  catch STError.sharingDenied(let quantity){
-                                    writeError = .sharingDenied(quantityType: quantity)
-                                    isShowingAlert = true
-                                } catch {
-                                    writeError = .unableToCompleteRequest
-                                    isShowingAlert = true
-                                }
                             }
                         }
                     }
