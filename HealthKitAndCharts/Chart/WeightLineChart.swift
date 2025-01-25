@@ -22,19 +22,25 @@ struct WeightLineChart :View {
         ChartHelper.parseSelectedData(from: chartData,in: rawSelectedDate)
     }
     
+    var averageWeight: Double{
+        chartData.map{ $0.value}.average
+    }
+    
     var body: some View {
-        let config = ChartContainerConfiguartion(title: "Weight", symbol: "figure", subtitle: "Avg: 180 lbs", context: .weight, isNav: true)
+        let config = ChartContainerConfiguartion(title: "Weight",
+                                                 symbol: "figure",
+                                                 subtitle: "Avg: \(averageWeight.formatted(.number.precision(.fractionLength(1)))) lbs",
+                                                 context: .weight,
+                                                 isNav: true)
         
         ChartContainer(config: config) {
-            if chartData.isEmpty{
-                ChartEmptyView(systemImageName: "chart.line.downtrend.xyaxis", title: "No Data", description: "There is no weight data from the Health App.")
-            } else{
                 Chart{
                     if let selectedData{
                         ChartAnnotationView(data: selectedData, context: .steps)
                     }
-                    RuleMark(y: .value("Goal", 155)).foregroundStyle(.mint).lineStyle(.init(lineWidth: 1, dash: [5]))
-                    
+                    if !chartData.isEmpty{
+                        RuleMark(y: .value("Goal", 155)).foregroundStyle(.mint).lineStyle(.init(lineWidth: 1, dash: [5]))
+                    }
                     ForEach(chartData) { weight in
                         AreaMark(x: .value("Day", weight.date, unit: .day),
                                  yStart: .value("Value", weight.value),
@@ -63,8 +69,11 @@ struct WeightLineChart :View {
                         AxisValueLabel()
                     }
                 }
+            }.overlay{
+                if chartData.isEmpty{
+                    ChartEmptyView(systemImageName: "chart.line.downtrend.xyaxis", title: "No Data", description: "There is no weight data from the Health App.")
+                }
             }
-        }
         .sensoryFeedback(.selection, trigger: selectedDate)
         .onChange(of: rawSelectedDate) { oldValue, newValue in
             if oldValue?.weekdayInt != newValue?.weekdayInt {

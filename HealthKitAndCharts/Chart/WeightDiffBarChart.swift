@@ -23,9 +23,6 @@ struct WeightDiffBarChart: View {
         let config = ChartContainerConfiguartion(title: "Average Weight Change", symbol: "figure", subtitle: "Per Weekday (Last 28 Days)", context: .weight, isNav: false)
         
         ChartContainer(config: config) {
-            if chartData.isEmpty{
-                ChartEmptyView(systemImageName: "chart.bar", title: "No Data", description: "There is no weight data from the Health App.")
-            } else{
             Chart {
                 if let selectedData {
                     ChartAnnotationView(data: selectedData, context: .steps)
@@ -54,8 +51,12 @@ struct WeightDiffBarChart: View {
                     AxisValueLabel()
                 }
             }
+            .overlay{
+                if chartData.isEmpty{
+                    ChartEmptyView(systemImageName: "chart.bar", title: "No Data", description: "There is no weight data from the Health App.")
+                }
+            }
         }
-    }
         .sensoryFeedback(.selection, trigger: selectedDate)
         .onChange(of: rawSelectedDate) { oldValue, newValue in
             if oldValue?.weekdayInt != newValue?.weekdayInt {
