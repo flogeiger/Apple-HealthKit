@@ -45,9 +45,9 @@ struct HealthKitPermissionPrimingView : View{
         .healthDataAccessRequest(store: hkManager.store, shareTypes: hkManager.types,readTypes: hkManager.types, trigger: isShowingHealthKitPermissions) { results in
             switch results {
             case .success:
-                dismiss()
+                Task{@MainActor in dismiss()}
             case .failure:
-                dismiss()
+                Task{@MainActor in dismiss()}
             }
         }
     }
