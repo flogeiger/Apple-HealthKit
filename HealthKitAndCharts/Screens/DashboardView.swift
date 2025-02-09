@@ -2,13 +2,14 @@ import SwiftUI
 import Charts
 
 enum HealthMetricContext: CaseIterable, Identifiable {
-    case steps, weight
+    case steps, weight, sleep
     var id: Self { self }
     
     var title: String {
         switch self {
         case .steps: return "Steps"
         case .weight: return "Weight"
+        case .sleep: return "Sleep"
         }
     }
 }
@@ -36,6 +37,10 @@ struct DashboardView: View {
                         WeightLineChart(chartData: ChartHelper.convert(data: hkData.weightData))
                         
                         WeightDiffBarChart(chartData: ChartMath.averageDailyWeightDiffs(for: hkData.weightDiffData))
+                    case .sleep:
+                        Spacer()
+                        Text("Sleep data not yet available")
+                        Spacer()
                     }
                 }
                 .padding()

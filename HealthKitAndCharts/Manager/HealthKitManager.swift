@@ -23,7 +23,8 @@ final class HealthKitManager: Sendable{
     
     let types: Set = [
         HKQuantityType(.bodyMass),
-        HKQuantityType(.stepCount)
+        HKQuantityType(.stepCount),
+        HKCategoryType(.sleepAnalysis)
     ]
     
     ///Fetch last 28 days of step count from HealthKit
@@ -50,6 +51,7 @@ final class HealthKitManager: Sendable{
             throw STError.unableToCompleteRequest
         }
     }
+    
     ///Fetch most recent weight sample on each day for a specified number of days back from today
     ///- Parameter daysBack: Days back from today. Ex - 28 will return the last 28 days
     ///- Returns: Array of ``HealthMetric``
@@ -73,6 +75,23 @@ final class HealthKitManager: Sendable{
             throw STError.unableToCompleteRequest
         }
     }
+    
+    func fetchDeepSleepData(daysBack: Int) async throws -> [HKCategorySample] {
+        
+        guard store.authorizationStatus(for: HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!) != .notDetermined else {
+            throw STError.authNotDetermined
+        }
+        
+        let interval = createDateInterval(from: .now, daysBack: daysBack)
+        let queryPredicate = HKQuery.predicateForSamples(withStart: interval.start, end: interval.end)
+        let samplePredicate = HKSamplePredicate.categorySample(type: HKCategoryType(.sleepAnalysis), predicate: queryPredicate)
+        let sleepQuery = HKSampleQuery(sampleType: <#T##HKSampleType#>,
+                                       predicate: queryPredicate,
+                                       limit: <#T##Int#>,
+                                       sortDescriptors: <#T##[NSSortDescriptor]?#>,
+                                       resultsHandler: <#T##(HKSampleQuery, [HKSample]?, (any Error)?) -> Void#>)
+        }
+    
     ///Write step count data to HealthKit. Requires HealthKit write permission.
     ///- Parameters:
     ///  - date: Date for step count value
@@ -100,6 +119,7 @@ final class HealthKitManager: Sendable{
             throw STError.unableToCompleteRequest
         }
     }
+    
     ///Write weight data to HealthKit. Requires HealthKit write permission.
     ///- Parameters:
     ///  - date: Date for weight value
@@ -128,6 +148,7 @@ final class HealthKitManager: Sendable{
             throw STError.unableToCompleteRequest
         }
     }
+    
     ///Creates a DateInterval between two dates
     ///- Parameters:
     ///  - date: End of date interval. Ex - today
